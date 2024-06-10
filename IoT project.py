@@ -10,14 +10,14 @@ first_connection_made = False
 
 # InfluxDB instellingen
 INFLUXDB_ADDRESS = 'localhost'
-INFLUXDB_USER = 'thibau'
-INFLUXDB_PASSWORD = 'test'
-INFLUXDB_DATABASE = 'IoTproject'
+INFLUXDB_USER = '...'
+INFLUXDB_PASSWORD = '...'
+INFLUXDB_DATABASE = '...'
 
 # MQTT instellingen
 MQTT_ADDRESS = 'localhost'
-MQTT_USER = 'test'
-MQTT_PASSWORD = 'test'
+MQTT_USER = '...'
+MQTT_PASSWORD = '...'
 MQTT_TOPICWaarden = "serre/waarden/+"
 MQTT_TOPICActuatoren = "serre/actuatoren/+"
 MQTT_TOPICParameters = "serre/parameters/+"
