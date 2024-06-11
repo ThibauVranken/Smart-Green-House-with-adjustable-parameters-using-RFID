@@ -26,6 +26,12 @@
 #define DHTPIN 4
 #define DHTTYPE DHT11
 
+// Wifi/MQTT Instanties en Chatbot definiëren
+/* Als je een chatbot wil gebruiken om via telegram de status van je waterreservoir
+te zien en om waarschuwingsberichten te krijgen voor als het waterreservoir bijna leeg is,
+dan raad ik je aan om deze tutorial te volgen en de nodige aanpassingen te doen in de code:
+https://randomnerdtutorials.com/telegram-request-esp32-esp8266-nodemcu-sensor-readings/
+*/
 #define CHAT_ID "..."
 #define BOTtoken "..."
 WiFiClientSecure client;
@@ -33,14 +39,17 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Preferences preferences;
 
+//WiFi credentials
 const char* ssid = "...";
 const char* password = "...";
-
+//MQTT credentials
 const char* mqtt_server = "...";
 const int mqtt_port = 1883;
 const char* MQTT_USER = "...";
 const char* MQTT_PASSWORD = "...";
 const char* MQTT_CLIENT_ID = "MQTTclient";
+
+//MQTT topics aanmaken voor alle waarden
 //Waarden
 const char* MQTT_TOPICtemp = "serre/waarden/temperature";
 const char* MQTT_TOPIChum = "serre/waarden/humidity";
@@ -64,6 +73,7 @@ const char* MQTT_TOPICParameterMinBv = "serre/parameters/MinBv";
 const char* MQTT_TOPICCommunication = "serre/communication/communication";
 const char* MQTT_REGEX = "serre/([^/]+)/([^/]+)";
 
+//Alle instanties aanmaken
 LiquidCrystal_I2C lcd(0x27, 16, 4);
 DHT dht(DHTPIN, DHTTYPE);
 OneWire oneWire(btPin);
@@ -72,6 +82,7 @@ AfstandsSensor afstandssensor(17, 16);
 UniversalTelegramBot bot(BOTtoken, client);
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
+// Variabelen en constanten definiëren
 unsigned long lastDisplayUpdateTime = 0;
 const unsigned long displayUpdateInterval = 5000;  // Interval van 5 seconden voor het bijwerken van het display
 const unsigned long waterUpdateInterval = 10000;
@@ -88,6 +99,8 @@ unsigned long lastTimeBotRan;
 bool newRFIDScan = false;
 bool displaySensorValues = true;
 
+// Standaad waarden voor parameters instellen en float maken voor
+waterreservoir te meten
 int maxTemp = 24;        // Maximale temperatuur standaard instelling
 int minTemp = 18;        // Minimale temperatuur standaard instelling
 int maxHum = 60;         // Maximale luchtvochtigheid standaard instelling
@@ -97,6 +110,7 @@ int minBodemvocht = 30;  // Minimale bodemvochtigheid standaard instelling
 float water;
 TaskHandle_t Task1;
 
+// Functie om te verbinden met WiFi
 void setup_wifi() {
   delay(10);
   Serial.println();
@@ -112,6 +126,7 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
+// Functie om te verbinden met MQTT broker
 void reconnect() {
   while (!mqttClient.connected()) {
     Serial.print("Verbinding maken met MQTT-broker...");
@@ -133,6 +148,8 @@ void reconnect() {
   }
 }
 
+/* Functie die de sensorwaarden leest, de sensorwaarden en de parameters
+verstuurd via MQTT en het LCD scherm regelt*/
 void clientPubTask(void* pvParameters) {
   while (true) {
     if (!mqttClient.connected()) {
@@ -280,6 +297,7 @@ void clientPubTask(void* pvParameters) {
   }
 }
 
+// Functie die wordt aangeroepen als de ESP32 een MQTT bericht ontvangt
 void callback(char* topic, byte* payload, unsigned int length) {
   unsigned long currentTime1 = millis();
   if (currentTime1 - lastCommunicationUpdateTime >= communicationUpdateInterval) {
@@ -300,7 +318,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-
+// Setup functie
 void setup() {
   Serial.begin(9600);
   pinMode(25, OUTPUT);
@@ -380,6 +398,7 @@ void setup() {
     0);
 }
 
+// Functie die de RFID tags leest
 void RFIDtagLezen() {
   static String Tag = "";  // Variabele om de vorige RFID-tag op te slaan
   if (!mfrc522.PICC_IsNewCardPresent()) {
@@ -419,6 +438,8 @@ void RFIDtagLezen() {
     minLight = 40;
     minBodemvocht = 30;
   }
+  /* Nieuwe parameters direct opslaan zodat
+deze opnieuw worden ingesteld als de ESP reset*/
   preferences.putInt("maxTemp", maxTemp);
   preferences.putInt("minTemp", minTemp);
   preferences.putInt("maxHum", maxHum);
@@ -431,6 +452,7 @@ void RFIDtagLezen() {
   noTone(27);
 }
 
+// 3 functies om de Telegram chatbot te laten werken
 String getWater() {
   water = afstandssensor.afstandCM();
   Serial.print("Afstand: ");
@@ -497,6 +519,7 @@ void waterReservoir() {
   }
 }
 
+// Functie om parameters te versturen
 void sendParameters() {
   String maxTemps = String(maxTemp);
   String minTemps = String(minTemp);
@@ -511,6 +534,7 @@ void sendParameters() {
   Serial.println("parameters verzonden");
 }
 
+// Loop functie
 void loop() {
   RFIDtagLezen();
   waterReservoir();
